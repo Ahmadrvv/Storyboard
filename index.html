@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storyboard ai - Inti Video Klip</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        zinc: { 850: '#202024', 900: '#18181b', 950: '#09090b' },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { 
+            background-color: #000000; 
+            /* Subtle linear gradient for a deep, pure black feel instead of lighter radial */
+            background-image: linear-gradient(to bottom, #0a0a0c 0%, #000000 100%);
+            background-attachment: fixed;
+            color: #e5e7eb; 
+        }
+        
+        /* Premium Full Black Glassmorphism UI */
+        .glass-panel {
+            background: rgba(10, 10, 12, 0.65);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+        }
+        
+        .glass-button {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.2s ease;
+        }
+        .glass-button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .glass-input {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+            transition: all 0.2s ease;
+        }
+        .glass-input:focus {
+            border-color: rgba(255, 255, 255, 0.25);
+            background: rgba(0, 0, 0, 0.8);
+            outline: none;
+            box-shadow: 0 0 15px rgba(255,255,255,0.05);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+        
+        .drop-zone.dragover { border-color: #fff; background-color: rgba(255, 255, 255, 0.1); }
+        
+        /* Animations */
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
+        .toast-enter { animation: slideInRight 0.3s ease-out forwards; }
+        .toast-leave { animation: fadeOut 0.3s ease-out forwards; }
+        
+        .log-ticker {
+            display: inline-block;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col font-sans antialiased text-sm">
+
+    <!-- Topbar -->
+    <header class="h-16 glass-panel border-b border-white/5 flex items-center justify-between px-5 shrink-0 z-20">
+        <div class="flex items-center gap-3.5 w-64 shrink-0">
+            <div class="w-9 h-9 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center text-white shadow-[0_0_15px_rgba(255,255,255,0.05)] backdrop-blur-md">
+                <i class="ph-light ph-film-strip text-xl"></i>
+            </div>
+            <div class="flex flex-col justify-center">
+                <h1 class="font-bold text-white text-base leading-tight tracking-wide flex items-center gap-1.5">
+                    Storyboard <span class="text-[9px] px-1.5 py-0.5 rounded-md bg-white/10 text-zinc-300 font-mono tracking-wider border border-white/10 uppercase">ai</span>
+                </h1>
+                <p class="text-[9px] text-zinc-500 font-medium tracking-widest mt-0.5 uppercase">Created by ahmadrv</p>
+            </div>
+        </div>
+        
+        <!-- Processing Log Panel (Mini) -->
+        <div class="flex-1 hidden md:flex items-center justify-center px-4">
+            <div id="log-pill" onclick="toggleLogDrawer()" title="Klik untuk melihat riwayat log" class="cursor-pointer hover:border-white/20 bg-black/60 border border-white/5 rounded-full px-4 py-1.5 flex items-center gap-3 w-full max-w-xl overflow-hidden shadow-inner transition-colors">
+                <i class="ph ph-terminal-window text-zinc-400"></i>
+                <div class="flex-1 overflow-hidden relative h-5">
+                    <span id="process-log" class="log-ticker text-xs font-mono text-zinc-300 absolute inset-0 flex items-center">Siap digunakan...</span>
+                </div>
+                <i id="log-spinner" class="ph ph-spinner animate-spin text-white hidden"></i>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4 shrink-0">
+            <div class="flex flex-col items-end mr-1">
+                <span class="text-[9px] text-zinc-500 font-medium uppercase tracking-widest mb-0.5">Kredit API</span>
+                <span id="credit-indicator" class="text-xs font-bold text-white font-mono flex items-center gap-1.5">
+                    <i class="ph-fill ph-coins text-yellow-500 text-[10px]"></i> ---
+                </span>
+            </div>
+            <div id="status-indicator" class="flex items-center justify-center w-8 h-8 rounded-full bg-black/50 border border-white/5 shadow-inner">
+                <div class="w-2 h-2 rounded-full bg-zinc-600"></div>
+            </div>
+            <button onclick="toggleSettings()" class="glass-button text-zinc-400 hover:text-white p-2.5 rounded-xl" title="Pengaturan">
+                <i class="ph ph-sliders-horizontal text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Log Drawer (riwayat log real-time) -->
+    <div id="log-drawer" class="hidden fixed top-16 left-1/2 -translate-x-1/2 w-[min(42rem,94vw)] z-40 glass-panel rounded-b-2xl border-t-0 shadow-2xl flex flex-col mt-2">
+        <div class="flex items-center justify-between px-5 py-3 border-b border-white/5 text-[10px] font-mono text-zinc-400 bg-white/5">
+            <span class="tracking-widest">LOG AKTIVITAS (REAL-TIME)</span>
+            <span class="flex gap-4"><button onclick="copyLog()" class="hover:text-white transition-colors">Salin</button><button onclick="Log.clear()" class="hover:text-white transition-colors">Bersihkan</button><button onclick="toggleLogDrawer()" class="hover:text-white transition-colors">Tutup</button></span>
+        </div>
+        <div id="log-drawer-body" class="p-4 h-72 overflow-y-auto custom-scrollbar font-mono text-[11px] space-y-1.5 bg-black/40"></div>
+    </div>
+
+    <!-- Main -->
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- Sidebar -->
+        <aside class="w-20 md:w-64 glass-panel border-r border-y-0 border-l-0 border-white/5 flex flex-col shrink-0 transition-all duration-300 z-10">
+            <nav class="flex-1 p-4 space-y-2">
+                <button onclick="switchPhase('setup')" id="nav-setup" class="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-all glass-button">
+                    <i class="ph ph-files text-xl"></i>
+                    <span class="hidden md:block font-medium text-sm">1. Persiapan</span>
+                </button>
+                <button onclick="switchPhase('image')" id="nav-image" class="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-all text-zinc-400 hover:bg-white/5 hover:text-zinc-200">
+                    <i class="ph ph-image text-xl"></i>
+                    <span class="hidden md:block font-medium text-sm">2. Papan Gambar</span>
+                </button>
+                <button onclick="switchPhase('video')" id="nav-video" class="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-all text-zinc-400 hover:bg-white/5 hover:text-zinc-200">
+                    <i class="ph ph-video text-xl"></i>
+                    <span class="hidden md:block font-medium text-sm">3. Papan Video</span>
+                </button>
+            </nav>
+            <div class="p-5 border-t border-white/5 bg-black/40">
+                <div class="hidden md:block">
+                    <p class="text-[9px] text-zinc-500 font-medium uppercase tracking-widest">Proyek Aktif</p>
+                    <p id="proj-title" class="text-zinc-300 font-semibold truncate mt-1.5 text-sm">Belum ada proyek</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Content -->
+        <main class="flex-1 relative overflow-hidden flex flex-col">
+            
+            <!-- PHASE 1: SETUP -->
+            <div id="phase-setup" class="absolute inset-0 overflow-y-auto custom-scrollbar p-6 space-y-8">
+                
+                <!-- Step 1a: Import -->
+                <div id="drop-zone-import" class="max-w-4xl mx-auto glass-panel rounded-3xl p-10 text-center transition-all cursor-pointer border-dashed border-2 hover:border-white/20 group relative overflow-hidden mt-8" onclick="document.getElementById('file-import').click()" ondragover="event.preventDefault(); this.classList.add('border-white/40')" ondragleave="event.preventDefault(); this.classList.remove('border-white/40')" ondrop="event.preventDefault(); this.classList.remove('border-white/40'); if(event.dataTransfer.files[0]) handleFileUpload({target: {files: event.dataTransfer.files}})">
+                    <div class="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="relative z-10">
+                        <div class="w-20 h-20 mx-auto bg-black/50 border border-white/5 rounded-2xl flex items-center justify-center mb-6 group-hover:-translate-y-2 transition-transform duration-300 shadow-xl">
+                            <i class="ph ph-upload-simple text-4xl text-zinc-300"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-white mb-3 tracking-wide">Impor Data Lirik</h2>
+                        <p class="text-zinc-400 font-medium max-w-md mx-auto text-sm">Klik atau tempel lirik (Duration Gen) di area ini untuk memulai.</p>
+                        <div class="mt-8 flex items-center justify-center gap-2 text-xs text-zinc-500 bg-black/60 inline-flex px-5 py-2.5 rounded-full border border-white/5 shadow-inner">
+                            <i class="ph ph-keyboard text-lg"></i> Atau tekan <kbd class="font-mono bg-zinc-800 text-zinc-300 px-2 py-1 rounded-md mx-1 shadow-sm border border-white/5">Ctrl</kbd> + <kbd class="font-mono bg-zinc-800 text-zinc-300 px-2 py-1 rounded-md mr-1 shadow-sm border border-white/5">V</kbd>
+                        </div>
+                        <input type="file" id="file-import" accept=".txt,.md,.json" class="hidden" onchange="handleFileUpload(event)">
+                    </div>
+                </div>
+
+                <!-- Step 1b: Character Customization -->
+                <div id="character-setup-panel" class="max-w-4xl mx-auto hidden mt-4">
+                    <div class="glass-panel rounded-3xl p-8 lg:p-10 border-white/5 relative overflow-hidden">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/10">
+                                <i class="ph-fill ph-user-circle-gear text-xl text-white"></i>
+                            </div>
+                            <h2 class="text-xl font-bold text-white tracking-wide">Atur Karakter Utama</h2>
+                        </div>
+                        <p class="text-zinc-400 text-sm mb-8 pl-13 max-w-2xl">Deskripsikan karakter utama Anda. Template visual Cocomelon 3D sudah dikunci permanen oleh sistem untuk konsistensi.</p>
+                        
+                        <div class="space-y-6">
+                            <div class="bg-black/30 p-6 rounded-2xl border border-white/5">
+                                <label class="block text-xs font-bold text-zinc-400 mb-3 uppercase tracking-widest">Deskripsi Karakter Utama (Bahasa Indonesia)</label>
+                                <textarea id="input-main-char" class="w-full glass-input rounded-xl px-5 py-4 text-sm placeholder-zinc-600 transition-all min-h-[120px] resize-y" placeholder="Contoh: Anak laki-laki berusia 5 tahun, berambut cokelat, memakai kaus kuning dan celana jins biru..."></textarea>
+                                <div class="mt-4 flex items-start gap-2 text-[11px] text-emerald-400/90 font-mono bg-emerald-500/10 px-4 py-3 rounded-xl border border-emerald-500/20">
+                                    <i class="ph-fill ph-lock-key mt-0.5"></i>
+                                    <p class="leading-relaxed">Template Terkunci: "[Subjek], animasi 3D gaya Cocomelon... [Ciri fisik]..." (Prompt final otomatis disalin dalam bahasa Inggris)</p>
+                                </div>
+                            </div>
+
+                            <button onclick="startAIGeneration()" class="w-full bg-white hover:bg-zinc-200 text-black font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.15)] transition-all flex items-center justify-center gap-2 mt-4 text-sm">
+                                <i class="ph-fill ph-brain text-lg"></i> Rancang Konsep Video Klip
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CMD Terminal Log -->
+                <div id="loading-state-panel" class="max-w-4xl mx-auto hidden w-full mt-4">
+                    <div class="glass-panel border-white/5 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+                        <div class="bg-black/80 px-5 py-3 flex items-center gap-2.5 border-b border-white/5 shrink-0">
+                            <div class="w-3 h-3 rounded-full bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500/80 shadow-[0_0_8px_rgba(234,179,8,0.5)]"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500/80 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
+                            <div class="ml-3 text-[10px] font-mono text-zinc-500 tracking-widest uppercase">system_terminal.exe</div>
+                            <i id="terminal-spinner" class="ph ph-spinner animate-spin text-white ml-auto hidden"></i>
+                        </div>
+                        <div id="cmd-terminal-body" class="bg-black/60 p-5 h-80 overflow-y-auto font-mono text-xs space-y-2 custom-scrollbar text-zinc-300 leading-relaxed">
+                            <!-- Logs append here -->
+                        </div>
+                        <div id="scene-progress" class="bg-black/90 border-t border-white/5 p-5 hidden shrink-0">
+                            <div class="flex justify-between text-[10px] font-mono text-zinc-400 mb-3 uppercase tracking-widest">
+                                <span>Progres Pemetaan</span>
+                                <span id="scene-progress-text" class="text-white">0 / 0</span>
+                            </div>
+                            <div class="h-1.5 bg-zinc-900 rounded-full overflow-hidden relative">
+                                <div id="scene-progress-bar" class="h-full bg-white w-0 transition-all duration-300 shadow-[0_0_12px_rgba(255,255,255,0.8)] rounded-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Story Ideas -->
+                <div id="story-selection-panel" class="max-w-5xl mx-auto hidden mt-4">
+                    <div class="flex items-center justify-between mb-8 px-2">
+                        <div>
+                            <h2 class="text-2xl font-bold text-white tracking-wide">Pilih Konsep Video Klip</h2>
+                            <p class="text-zinc-400 text-sm mt-2 max-w-2xl">Konsep ini dirancang agar relevan dengan lirik lagu, dilengkapi dengan aktivitas visual dinamis yang disesuaikan.</p>
+                        </div>
+                        <button onclick="startAIGeneration()" id="btn-regen-ideas" class="glass-button px-5 py-2.5 text-zinc-300 rounded-xl text-sm font-medium flex items-center gap-2 hover:text-white shadow-sm">
+                            <i class="ph ph-arrows-clockwise text-lg"></i> Buat Ulang
+                        </button>
+                    </div>
+                    <div id="story-ideas-container" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Ideas injected -->
+                    </div>
+                </div>
+
+                <!-- Asset Manager -->
+                <div id="asset-manager-panel" class="max-w-4xl mx-auto hidden space-y-6 mt-4">
+                    <div class="glass-panel rounded-3xl p-8 lg:p-10 relative overflow-hidden border-white/5">
+                        <div class="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none"><i class="ph-fill ph-cube text-9xl"></i></div>
+                        
+                        <div class="flex items-center gap-3 mb-2 relative z-10">
+                            <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/10">
+                                <i class="ph-fill ph-basket text-xl text-white"></i>
+                            </div>
+                            <h2 class="text-xl font-bold text-white tracking-wide">Pustaka Aset Visual</h2>
+                        </div>
+                        <p class="text-sm text-zinc-400 mb-8 max-w-2xl relative z-10 pl-13">Buat gambar referensi ini terlebih dahulu (mis. Midjourney/Google Flow). Prompt telah dioptimalkan dengan template khusus.</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10" id="asset-list-container">
+                            <!-- Assets injected -->
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-3xl p-10 flex flex-col items-center justify-center text-center border-white/5 relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none"></div>
+                        <div class="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center mb-5 border border-white/10 shadow-lg relative z-10">
+                            <i class="ph-fill ph-map-trifold text-3xl text-white"></i>
+                        </div>
+                        <h2 class="text-xl font-bold text-white mb-3 relative z-10 tracking-wide">Pemetaan Scene Otomatis</h2>
+                        <p class="text-sm text-zinc-400 mb-8 max-w-lg relative z-10">Sistem AI akan memecah lirik berdasarkan konsep terpilih, mengatur variabel aksi, ekspresi, serta sudut kamera secara presisi.</p>
+                        <button id="btn-generate-scenes" onclick="generateScenes()" class="bg-white text-black hover:bg-zinc-200 px-8 py-4 font-bold rounded-xl shadow-[0_0_25px_rgba(255,255,255,0.2)] transition-all flex items-center gap-2 hover:-translate-y-1 relative z-10 text-sm">
+                            <i class="ph-fill ph-magic-wand text-lg"></i> Mulai Petakan Scene
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PHASE 2: IMAGE BOARD -->
+            <div id="phase-image" class="absolute inset-0 flex flex-col hidden">
+                <div class="p-6 glass-panel border-b border-white/5 shrink-0 relative z-10 shadow-2xl rounded-none">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-5">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/10">
+                                <i class="ph-fill ph-images text-2xl text-white"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-white tracking-wide">Papan Gambar</h2>
+                                <p class="text-xs text-zinc-400 mt-1.5">Filter berdasarkan tempat. Salin prompt, buat gambar, lalu seret hasilnya ke kotak yang tersedia.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2.5 mt-6 ml-16" id="place-filters">
+                        <!-- Filters -->
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-8 bg-black/30">
+                    <div id="image-board-container" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 max-w-[1500px] mx-auto pb-10">
+                        <!-- Scene Cards -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- PHASE 3: VIDEO BOARD -->
+            <div id="phase-video" class="absolute inset-0 flex flex-col hidden">
+                <div class="p-6 glass-panel border-b border-white/5 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-5 z-10 shadow-2xl rounded-none">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/10">
+                            <i class="ph-fill ph-film-script text-2xl text-white"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold text-white tracking-wide">Papan Video</h2>
+                            <p class="text-xs text-zinc-400 mt-1.5 max-w-2xl">Prompt video difokuskan pada gerakan: kamera, aksi karakter, dan ketiadaan musik. Gunakan Image-to-Video.</p>
+                        </div>
+                    </div>
+                    <button onclick="exportData()" class="glass-button px-6 py-3 text-white text-sm font-medium rounded-xl flex items-center gap-2 hover:bg-white/10 shadow-lg">
+                        <i class="ph ph-download-simple text-lg"></i> Cadangkan (.json)
+                    </button>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-8 bg-black/30">
+                    <div id="video-board-container" class="max-w-5xl mx-auto space-y-5 pb-10">
+                        <!-- Video Sequences -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel border-white/10 rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col transform transition-all">
+            <div class="px-8 py-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                <h3 class="text-xl font-bold text-white flex items-center gap-3"><i class="ph-fill ph-key text-2xl text-white/80"></i> Pengaturan Kunci API</h3>
+                <button onclick="toggleSettings()" class="text-zinc-500 hover:text-white transition-colors p-2 bg-white/5 rounded-xl hover:bg-white/10"><i class="ph ph-x text-xl"></i></button>
+            </div>
+            <div class="p-8 space-y-6 bg-black/40">
+                <div>
+                    <label class="block text-[10px] font-bold text-zinc-500 mb-3 uppercase tracking-widest">Model AI Aktif</label>
+                    <div id="model-picker" class="flex gap-3"></div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-zinc-500 mb-3 uppercase tracking-widest">Tambahkan Kunci (kie.ai/claude)</label>
+                    <div class="relative">
+                        <input type="text" id="api-key-input" class="w-full glass-input rounded-xl px-5 py-4 text-sm font-mono placeholder-zinc-700 transition-all pr-14 shadow-inner" placeholder="sk-ant-api03-xxxx...">
+                        <button onclick="submitKeyInput()" class="absolute right-2 top-2 bottom-2 bg-white hover:bg-zinc-200 text-black px-4 rounded-lg transition-colors flex items-center justify-center shadow-sm">
+                            <i class="ph ph-arrow-right text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="pt-2">
+                    <div class="flex items-center justify-between mb-3">
+                        <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Kunci Tersimpan (<span id="key-count-display">0</span>/5)</label>
+                        <button onclick="refreshAllCredits()" class="text-[11px] text-zinc-400 hover:text-white flex items-center gap-1.5 transition-colors bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                            <i class="ph ph-arrows-clockwise text-sm"></i> Cek Saldo
+                        </button>
+                    </div>
+                    <div id="api-key-list" class="space-y-2.5 max-h-[250px] overflow-y-auto custom-scrollbar pr-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast-container" class="fixed bottom-8 right-8 z-50 flex flex-col gap-3"></div>
+
+    <script>
+        /* ==========================================
+           1. STATE & DB
+           ========================================== */
+        let STATE = {
+            keys: JSON.parse(localStorage.getItem('sb2_keys') || '[]'),
+            project: JSON.parse(localStorage.getItem('sb2_project') || 'null'),
+            phase: 'setup',
+            filterPlace: 'all'
+        };
+
+        const DB_NAME = "StoryboardDB_v2";
+        let db;
+        const initDB = () => new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, 1);
+            request.onupgradeneeded = e => {
+                db = e.target.result;
+                if (!db.objectStoreNames.contains("images")) db.createObjectStore("images");
+            };
+            request.onsuccess = e => { db = e.target.result; resolve(); };
+            request.onerror = reject;
+        });
+        const saveImageDB = (id, dataUrl) => new Promise((resolve, reject) => {
+            if (!db) return resolve();
+            const tx = db.transaction("images", "readwrite");
+            tx.objectStore("images").put(dataUrl, id);
+            tx.oncomplete = resolve; tx.onerror = reject;
+        });
+        const getImageDB = (id) => new Promise((resolve) => {
+            if (!db) return resolve(null);
+            const req = db.transaction("images", "readonly").objectStore("images").get(id);
+            req.onsuccess = () => resolve(req.result); req.onerror = () => resolve(null);
+        });
+
+        const clearImagesDB = () => new Promise(res => {
+            if (!db) return res();
+            const tx = db.transaction("images", "readwrite");
+            tx.objectStore("images").clear(); tx.oncomplete = res; tx.onerror = res;
+        });
+        const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;');
+        function copyFromAttr(el, msg) { copyToClipboard(el.dataset.p, msg || 'Prompt (Inggris) disalin!'); }
+
+        function saveState() {
+            localStorage.setItem('sb2_project', JSON.stringify(STATE.project));
+            localStorage.setItem('sb2_keys', JSON.stringify(STATE.keys));
+            updateUI();
+        }
+
+        /* ==========================================
+           2. UTILITIES & TERMINAL LOG
+           ========================================== */
+        const $ = id => document.getElementById(id);
+        
+        function showToast(msg, type = 'info') {
+            const container = $('toast-container');
+            const toast = document.createElement('div');
+            let bgClass = type === 'success' ? 'bg-[#0a0a0c] border-green-500/30' : type === 'error' ? 'bg-[#0a0a0c] border-red-500/30' : 'bg-[#0a0a0c] border-white/10';
+            let icon = type === 'success' ? '<i class="ph-fill ph-check-circle text-green-400 text-lg"></i>' : type === 'error' ? '<i class="ph-fill ph-warning-circle text-red-400 text-lg"></i>' : '<i class="ph-fill ph-info text-white text-lg"></i>';
+            toast.className = `flex items-center gap-3.5 px-5 py-4 rounded-2xl border backdrop-blur-xl shadow-2xl toast-enter text-white ${bgClass}`;
+            toast.innerHTML = `${icon} <span class="font-medium text-sm tracking-wide">${msg}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.replace('toast-enter', 'toast-leave'); setTimeout(() => toast.remove(), 300); }, 4000);
+        }
+
+        function copyToClipboard(text, successMsg) {
+            const el = document.createElement('textarea'); el.value = text; document.body.appendChild(el);
+            el.select(); document.execCommand('copy'); document.body.removeChild(el);
+            Log.info(`Teks disalin ke clipboard (${text.length} karakter)`);
+            showToast(successMsg || 'Teks berhasil disalin!', 'success');
+        }
+
+        // Sistem log: setiap entri berasal dari kejadian nyata
+        const LVL = { info: 'text-zinc-300', working: 'text-yellow-400', success: 'text-green-400', warn: 'text-orange-400', error: 'text-red-400' };
+        const fmtTime = t => new Date(t).toLocaleTimeString('id-ID', { hour12: false });
+        const Log = (() => {
+            const MAX = 400, list = [], views = new Set(); let seq = 0, active = 0, last = null;
+            const fire = e => { last = e; views.forEach(v => v(e)); renderPill(); };
+            const add = (level, msg, live) => { const e = { id: ++seq, t: Date.now(), level, msg: String(msg), live: !!live }; list.push(e); if (list.length > MAX) list.shift(); fire(e); return e; };
+            const upd = (e, msg, level) => { e.msg = String(msg); if (level) e.level = level; fire(e); };
+            return {
+                list, add,
+                info: m => add('info', m), ok: m => add('success', m), warn: m => add('warn', m), err: m => add('error', m),
+                task(label) {
+                    active++; const e = add('working', label, true); let done = false;
+                    return {
+                        set: m => { if (!done) upd(e, m, 'working'); },
+                        end(m, level = 'success') { if (!done) { done = true; active = Math.max(0, active - 1); } e.live = false; upd(e, m, level); }
+                    };
+                },
+                busy: () => active > 0, last: () => last,
+                clear() { list.length = 0; last = null; views.forEach(v => v(null)); renderPill(); },
+                view(box) {
+                    const nodes = new Map();
+                    const fn = e => {
+                        if (!e) { box.innerHTML = ''; nodes.clear(); return; }
+                        const near = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+                        let n = nodes.get(e.id);
+                        if (!n) {
+                            n = document.createElement('div'); nodes.set(e.id, n); box.appendChild(n);
+                            if (nodes.size > MAX) { const k = nodes.keys().next().value; nodes.get(k).remove(); nodes.delete(k); }
+                        }
+                        const t = document.createElement('span'), m = document.createElement('span');
+                        t.className = 'text-zinc-600 mr-2'; t.textContent = `[${fmtTime(e.t)}]`;
+                        m.className = LVL[e.level]; m.textContent = '› ' + e.msg;
+                        n.replaceChildren(t, m);
+                        if (near) box.scrollTop = box.scrollHeight;
+                    };
+                    views.add(fn); list.forEach(fn); return fn;
+                }
+            };
+        })();
+        function renderPill() {
+            const e = Log.last(), busy = Log.busy(), el = $('process-log');
+            el.textContent = e ? e.msg : 'Sistem siap dan siaga...';
+            el.className = `log-ticker text-xs font-mono absolute inset-0 flex items-center ${e ? LVL[e.level] : 'text-zinc-400'}`;
+            $('log-spinner').classList.toggle('hidden', !busy);
+            const ts = $('terminal-spinner'); if (ts) ts.classList.toggle('hidden', !busy);
+            $('status-indicator').firstElementChild.className = 'w-2 h-2 rounded-full ' + (busy ? 'bg-white animate-pulse shadow-[0_0_10px_rgba(255,255,255,1)]' : e?.level === 'error' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]' : e?.level === 'success' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]' : 'bg-zinc-600');
+        }
+        Log.view($('log-drawer-body'));
+        const termView = Log.view($('cmd-terminal-body'));
+        function toggleLogDrawer() { $('log-drawer').classList.toggle('hidden'); const b = $('log-drawer-body'); b.scrollTop = b.scrollHeight; }
+        function copyLog() { copyToClipboard(Log.list.map(e => `[${fmtTime(e.t)}] ${e.level.toUpperCase()} ${e.msg}`).join('\n'), 'Log sistem disalin!'); }
+        window.addEventListener('error', e => Log.err(`Galat tak terduga di aplikasi: ${e.message}`));
+        window.addEventListener('unhandledrejection', e => Log.err(`Galat tak terduga (promise): ${e.reason?.message || e.reason}`));
+
+        /* ==========================================
+           3. API LOGIC
+           ========================================== */
+        const API_URL = 'https://api.kie.ai/claude/v1/messages';
+        const CREDIT_URL = 'https://api.kie.ai/api/v1/chat/credit';
+        const MODELS = [
+            { id: 'claude-sonnet-5-5', name: 'Sonnet 5.5', desc: 'Cepat & hemat' },
+            { id: 'claude-opus-5-5', name: 'Opus 5.5', desc: 'Akurasi tinggi, lebih mahal' }
+        ];
+        function currentModel() {
+            const saved = localStorage.getItem('sb2_model');
+            return (MODELS.find(m => m.id === saved) || MODELS[0]).id;
+        }
+        function setModel(id) {
+            if (!MODELS.some(m => m.id === id)) return;
+            localStorage.setItem('sb2_model', id);
+            renderModelPicker();
+            Log.info(`Model AI diganti ke ${MODELS.find(m => m.id === id).name} (${id})`);
+        }
+        function renderModelPicker() {
+            const box = $('model-picker'); if (!box) return;
+            const cur = currentModel();
+            box.innerHTML = MODELS.map(m => {
+                const on = m.id === cur;
+                return `<button type="button" onclick="setModel('${m.id}')" class="flex-1 text-left rounded-xl px-4 py-3 border transition-all ${on ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'glass-input text-zinc-300 border-white/10 hover:border-white/30'}">
+                    <div class="text-sm font-bold flex items-center gap-2">${on ? '<i class="ph-fill ph-check-circle"></i>' : '<i class="ph ph-circle"></i>'} ${m.name}</div>
+                    <div class="text-[10px] ${on ? 'text-zinc-700' : 'text-zinc-500'} mt-1 tracking-wide">${m.desc}</div>
+                </button>`;
+            }).join('');
+        }
+
+        async function checkCredit(keyString) {
+            try {
+                const r = await fetch(CREDIT_URL, { headers: { 'Authorization': 'Bearer ' + keyString } });
+                const j = await r.json(); return (j.code === 200 && j.data !== undefined) ? Number(j.data) : null;
+            } catch (e) { return null; }
+        }
+
+        async function refreshAllCredits() {
+            const task = STATE.keys.length ? Log.task(`Memeriksa saldo ${STATE.keys.length} kunci API...`) : null;
+            let totalCr = 0, hasChecked = false;
+            for (let i = 0; i < STATE.keys.length; i++) {
+                const k = STATE.keys[i], cr = await checkCredit(k.key);
+                if (cr !== null) { k.cr = cr; k.status = cr > 0 ? 'ok' : 'empty'; totalCr += cr; hasChecked = true; Log.info(`Kunci ...${k.key.slice(-4)}: saldo ${new Intl.NumberFormat('id-ID').format(cr)}`); }
+                else { k.status = 'error'; Log.warn(`Kunci ...${k.key.slice(-4)}: gagal memeriksa saldo`); }
+            }
+            saveState(); renderKeys();
+            const total = hasChecked ? new Intl.NumberFormat('id-ID').format(totalCr) : '---';
+            $('credit-indicator').innerHTML = `<i class="ph-fill ph-coins text-yellow-500 text-[10px]"></i> ${total}`;
+            task?.end(`Pemeriksaan saldo selesai. Total: ${total}`);
+        }
+
+        function removeKey(k) { STATE.keys = STATE.keys.filter(x => x.key !== k); Log.info(`Kunci API ...${k.slice(-4)} dihapus`); saveState(); refreshAllCredits(); }
+
+        class KeyError extends Error {}
+
+        async function requestAI(kObj, systemPrompt, userPrompt, stream, task) {
+            const t0 = Date.now(); let chars = 0, inTok = null, outTok = null, stop = '', text = '';
+            const tick = setInterval(() => {
+                const s = Math.round((Date.now() - t0) / 1000);
+                task.set(chars ? `Menerima respons AI... ${chars.toLocaleString('id-ID')} karakter (${s} dtk)` : `Menunggu koneksi AI... ${s} dtk`);
+            }, 1000);
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + kObj.key },
+                    body: JSON.stringify({ model: currentModel(), stream, max_tokens: 16000, system: systemPrompt, messages: [{ role: 'user', content: userPrompt }] })
+                });
+                if (stream && res.ok && (res.headers.get('content-type') || '').includes('text/event-stream') && res.body) {
+                    task.set(`Koneksi streaming terhubung (HTTP ${res.status}), memproses token...`);
+                    const rd = res.body.getReader(), dec = new TextDecoder(); let buf = '';
+                    for (;;) {
+                        const { done, value } = await rd.read(); if (done) break;
+                        buf += dec.decode(value, { stream: true });
+                        let i;
+                        while ((i = buf.indexOf('\n')) >= 0) {
+                            const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+                            if (!line.startsWith('data:')) continue;
+                            let ev; try { ev = JSON.parse(line.slice(5)); } catch (_) { continue; }
+                            if (ev.type === 'content_block_delta' && ev.delta?.text) { text += ev.delta.text; chars = text.length; }
+                            else if (ev.type === 'message_start') inTok = ev.message?.usage?.input_tokens ?? inTok;
+                            else if (ev.type === 'message_delta') { outTok = ev.usage?.output_tokens ?? outTok; stop = ev.delta?.stop_reason || stop; }
+                            else if (ev.type === 'error') throw new Error(ev.error?.message || 'kesalahan transmisi data');
+                        }
+                    }
+                } else {
+                    const data = await res.json().catch(() => ({})), code = data.code || res.status;
+                    if ([401, 402, 429, 433].includes(code)) throw Object.assign(new Error(`kunci ditolak/saldo habis (kode ${code})`), { fatalKey: true });
+                    if (!res.ok || (data.code && data.code !== 200)) throw new Error(data.error?.message || data.msg || `HTTP ${res.status}`);
+                    text = data.content?.find(x => x.text)?.text || data.content?.[0]?.text || '';
+                    inTok = data.usage?.input_tokens ?? null; outTok = data.usage?.output_tokens ?? null; stop = data.stop_reason || '';
+                }
+                if (!text) throw new Error('respons AI kosong');
+                Log.info(`Transfer data selesai: ${text.length.toLocaleString('id-ID')} karakter, masuk ${inTok ?? '?'} / keluar ${outTok ?? '?'} tok, ${((Date.now() - t0) / 1000).toFixed(1)}d`);
+                if (stop === 'max_tokens') Log.warn('Peringatan: Respons terpotong limit token, data mungkin tidak sempurna.');
+                return text;
+            } finally { clearInterval(tick); }
+        }
+
+        async function callAI(systemPrompt, userPrompt, label = 'Proses AI') {
+            if (STATE.keys.length === 0) throw new KeyError('Kredensial API tidak ditemukan. Harap isi di Pengaturan.');
+            Log.info(`${label}: mengirim ${(systemPrompt.length + userPrompt.length).toLocaleString('id-ID')} karakter ke server (Model: ${currentModel()})`);
+            for (const kObj of STATE.keys) {
+                const k4 = kObj.key.slice(-4);
+                if (kObj.status === 'empty' || kObj.status === 'error') { Log.warn(`Melewati Kunci ...${k4} (Status: ${kObj.status})`); continue; }
+                for (const stream of [true, false]) {
+                    const task = Log.task(`Otentikasi Kunci ...${k4}${stream ? ' [Stream Mode]' : ''}...`);
+                    try {
+                        const text = await requestAI(kObj, systemPrompt, userPrompt, stream, task);
+                        task.end('Paket data respons diterima utuh.'); setTimeout(refreshAllCredits, 2000); return text;
+                    } catch (e) {
+                        if (e.fatalKey) { kObj.status = 'empty'; kObj.cr = 0; saveState(); task.end(`Akses ditolak pada ...${k4}: ${e.message}. Mencoba rute alternatif.`, 'warn'); break; }
+                        task.end(`Koneksi ...${k4} bermasalah${stream ? ' di mode stream, mencoba mode standar' : ''}: ${e.message}`, stream ? 'warn' : 'error');
+                    }
+                }
+            }
+            throw new KeyError('Semua rute kredensial API gagal divalidasi atau kehabisan saldo.');
+        }
+
+        function extractJSON(text) {
+            const fail = (id, en) => Object.assign(new Error(id), { en, raw: String(text) });
+            let s = String(text).replace(/```(?:json)?/gi, '');
+            const start = s.search(/[\[{]/);
+            if (start < 0) throw fail('Struktur JSON tidak terdeteksi pada respons.', 'No JSON found in the output. Return a JSON array only.');
+            s = s.slice(start);
+            const root = s[0];
+            let depth = 0, inStr = false, esc = false, endIdx = -1, lastItemEnd = -1;
+            for (let i = 0; i < s.length; i++) {
+                const ch = s[i];
+                if (inStr) { if (esc) esc = false; else if (ch === '\\') esc = true; else if (ch === '"') inStr = false; continue; }
+                if (ch === '"') inStr = true;
+                else if (ch === '[' || ch === '{') depth++;
+                else if (ch === ']' || ch === '}') {
+                    depth--;
+                    if (depth === 1 && root === '[' && ch === '}') lastItemEnd = i;
+                    if (depth === 0) { endIdx = i; break; }
+                }
+            }
+            const tryParse = str => {
+                try { return JSON.parse(str); } catch (_) { }
+                try { return JSON.parse(str.replace(/,\s*([}\]])/g, '$1')); } catch (_) { }
+                return undefined;
+            };
+            if (endIdx >= 0) {
+                const v = tryParse(s.slice(0, endIdx + 1));
+                if (v !== undefined) return v;
+                throw fail('Kerusakan sintaks JSON, gagal diurai.', 'The output was not valid JSON. Return valid JSON only, escape all quotes inside strings.');
+            }
+            if (root === '[' && lastItemEnd > 0) {
+                const arr = tryParse(s.slice(0, lastItemEnd + 1) + ']');
+                if (Array.isArray(arr) && arr.length) { arr.truncated = true; return arr; }
+            }
+            throw fail('Respons terputus parah sebelum blok pertama selesai.', 'The output was truncated. Keep every string very short.');
+        }
+
+        /* ==========================================
+           4. WORKFLOW LOGIC (MUSIC VIDEO DIRECTOR)
+           ========================================== */
+        function handleFileUpload(e) {
+            const file = e.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = ev => { Log.info(`Mengimpor file "${file.name}" (${(file.size / 1024).toFixed(1)} KB)...`); parseImportData(ev.target.result, file.name); };
+            reader.readAsText(file);
+        }
+
+        document.addEventListener('paste', e => {
+            if (STATE.phase !== 'setup' || !$('settings-modal').classList.contains('hidden')) return;
+            if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+            const text = e.clipboardData.getData('text');
+            if (text.trim().length > 20) { Log.info(`Mendeteksi input dari clipboard (${text.length} char), mengeksekusi...`); parseImportData(text, 'Data Tempelan'); }
+        });
+
+        function parseImportData(text, filename) {
+            try {
+                if (text.trim().startsWith('{')) {
+                    const proj = JSON.parse(text);
+                    if (proj.clips && proj.map) { STATE.project = proj; saveState(); Log.ok(`Restorasi data proyek sukses: "${proj.title}"`); showToast('Proyek berhasil direstorasi.', 'success'); return; }
+                }
+                const clips = [];
+                text.split('\n').forEach(line => {
+                    const m = line.match(/^\s*\d+\s*\|\s*(\d+):(\d+(?:\.\d+)?)\s*(?:→|->)\s*(\d+):(\d+(?:\.\d+)?)\s*\|\s*[\d.]+s\s*\|\s*(.*?)\s*(⚠)?\s*$/);
+                    if (m) clips.push({ s: +m[1]*60 + +m[2], e: +m[3]*60 + +m[4], t: m[5], isLyr: !(/^\(instrumental\)$|^intro$/i.test(m[5])) });
+                });
+                if (clips.length === 0) throw new Error("Format meta-data lirik tidak dikenali.");
+                
+                STATE.project = { title: filename.replace(/\.[^.]+$/, ''), clips: splitClips(clips), mainChar: "", ideas: null, book: null, map: [] };
+                saveState();
+                Log.ok(`Ekstraksi dari "${filename}": ${clips.length} baris master → ${STATE.project.clips.length} segmen terkuantisasi`); clearImagesDB(); showToast(`Sinkronisasi lirik selesai (${STATE.project.clips.length} segmen). Harap tentukan karakter utama.`, 'success');
+            } catch (e) { Log.err('Fatal error saat parsing data: ' + e.message); showToast('Format data tidak didukung.', 'error'); }
+        }
+
+        function initTerminal(title) {
+            ['drop-zone-import', 'character-setup-panel', 'story-selection-panel', 'asset-manager-panel'].forEach(i => $(i).classList.add('hidden'));
+            $('loading-state-panel').classList.remove('hidden');
+            STATE.working = true; termView(null);
+            Log.ok('=== INITIALIZING KERNEL: NEW SESSION ===');
+            Log.info(title);
+        }
+
+        async function toEnglish(text) {
+            Log.info('Menjalankan modul translasi natural language (ID -> EN)...');
+            const out = await callAI('You are a translator. Translate the user text into natural English. Output ONLY the translation, with no quotes and no commentary. If it is already in English, return it unchanged.', text, 'Modul Translasi');
+            return out.trim().replace(/^["']|["']$/g, '');
+        }
+
+        async function startAIGeneration() {
+            const charInput = $('input-main-char').value.trim();
+            if (!charInput) return showToast('Parameter karakter utama tidak boleh kosong.', 'error');
+            if (STATE.keys.length === 0) { showToast('Kredensial API diperlukan.', 'error'); return toggleSettings(); }
+
+            const P = STATE.project; P.mainChar_src = charInput; saveState();
+            const lyr = P.clips.filter(c => c.isLyr), fullLyrics = lyr.map(c => c.t).join(' | ');
+            initTerminal('Menjalankan algoritma analisis narasi musikal...');
+            Log.info(`Memproses vektor lirik: Total ${P.clips.length} segmen, ${lyr.length} segmen vokal`);
+
+            const sys = `You are a Music Video Director for children's songs (like Cocomelon). 
+Analyze the lyrics and design 3 DIFFERENT engaging music video concepts.
+CRITICAL RULES:
+1. RELEVANT: The concept MUST match the song's meaning (e.g. 'Old MacDonald' = farm, 'Twinkle Twinkle' = night sky/camping).
+2. DYNAMIC ACTIONS: Do NOT just make the character stand around. They must be active (dancing, running, pointing, petting animals, playing, exploring).
+3. NO FANTASY/MAGIC: Keep it in the real world. No chairs turning into trains, no magic boxes, no surrealism. It must be realistic everyday activities but fun.
+4. LOCATIONS: Use 4 to 6 DIFFERENT real-world locations, each visually distinct from the others (e.g., 'A bright farmyard', 'A wooden barn interior', 'A grassy hillside', 'A village market'). They must fit the song's meaning and be places where the activities can really happen. Do NOT use the word 'cute' to describe places.
+5. All fields MUST be written in English, EXCEPT fields ending in "_id": those are natural INDONESIAN translations of the matching English field, used only for on-screen display (keep proper character names unchanged).
+6. JSON FORMAT ONLY: [{"title":"Concept Title","title_id":"...","idea":"Brief synopsis of the video clip activities","idea_id":"...","cast":[{"name":"Character Name","name_id":"...","look":"Detailed physical description based on input","look_id":"..."}],"places":[{"name":"Place Name","name_id":"...","look":"Clear architectural description, NO 'cute' word","look_id":"..."}]}]`;
+
+            try {
+                let charEn = P.mainChar;
+                if (!charEn || P.mainChar_en_of !== charInput) {
+                    charEn = await toEnglish(charInput); P.mainChar = charEn; P.mainChar_en_of = charInput;
+                    Log.ok(`Kompilasi translasi selesai: "${charEn}"`);
+                } else Log.info('Menggunakan data translasi yang tersimpan di cache.');
+                const usr = `Song Lyrics: "${fullLyrics}"\nMain Character Required: ${charEn}\nDesign 3 fun, dynamic music video concepts based strictly on the real meaning of the lyrics.`;
+                const ideas = extractJSON(await callAI(sys, usr, 'Konseptualisasi Visual'));
+                if (!Array.isArray(ideas) || !ideas.length) throw new Error('Format output AI tidak terdefinisi.');
+                P.ideas = ideas;
+                Log.ok(`Berhasil merender ${ideas.length} matriks konsep (${ideas.map(i => (i.cast || []).length + ' aktor/' + (i.places || []).length + ' set').join(', ')}).`);
+                STATE.working = false; saveState();
+            } catch (e) {
+                Log.err('Kegagalan sistem konseptualisasi: ' + e.message);
+                setTimeout(() => { STATE.working = false; updateUI(); }, 4000);
+            }
+        }
+
+        function selectIdea(index) {
+            STATE.project.book = STATE.project.ideas[index];
+            STATE.project.map = []; STATE.project.bid = 'b' + Date.now().toString(36); clearImagesDB(); saveState();
+            Log.ok(`Direktori konsep dikunci: "${STATE.project.book.title_id || STATE.project.book.title}"`); showToast('Konsep diterapkan, melanjutkan ke peta scene.', 'success');
+        }
+
+        const DUR_OPTS = [4, 6, 8, 10];
+        const CAM_CYCLE = ['Medium', 'Full body', 'Close up', 'Low angle', 'Medium', 'Full body'];
+        function roundDur(d) { for (const o of DUR_OPTS) if (d <= o + 0.3) return o; return 10; }
+        function clipDur(c) { return c.dur || roundDur(c.e - c.s); }
+        function splitClips(raw) {
+            const out = [];
+            raw.forEach(c => {
+                const d = c.e - c.s, k = d > 10.3 ? Math.ceil(d / 10) : 1;
+                for (let p = 0; p < k; p++) {
+                    const s = c.s + (d / k) * p, e = c.s + (d / k) * (p + 1);
+                    out.push({ ...c, s, e, dur: roundDur(e - s), part: k > 1 ? `${p + 1}/${k}` : '' });
+                }
+            });
+            return out.map((c, i) => ({ ...c, n: i + 1 }));
+        }
+        function pickCam(prevCams, newPlace) {
+            if (newPlace) return 'Wide establishing';
+            const last = prevCams[prevCams.length - 1];
+            for (let t = 0; t < CAM_CYCLE.length; t++) {
+                const c = CAM_CYCLE[(prevCams.length + t) % CAM_CYCLE.length];
+                if (c !== last) return c;
+            }
+            return 'Medium';
+        }
+        const findName = (list, name) => list.find(x => x.trim().toLowerCase() === String(name ?? '').trim().toLowerCase()) || null;
+        function validateBatch(j, chunk, places, cast) {
+            if (!Array.isArray(j)) return [{ en: 'output is not a JSON array', id: 'output bukan struktur array' }];
+            const probs = [], P = (en, id) => probs.push({ en, id });
+            if (j.length !== chunk.length) P(`expected ${chunk.length} items but got ${j.length}`, `integritas data: jumlah item ${j.length} !== ${chunk.length}`);
+            chunk.forEach((c, k) => {
+                const it = j[k]; if (!it) return;
+                if (it.n !== undefined && Number(it.n) !== c.n) P(`item ${k + 1} has n=${it.n}, expected ${c.n}`, `diskrepansi index urutan pada item ${k + 1}`);
+                if (!findName(places, it.place)) P(`clip ${c.n}: unknown place "${it.place}"`, `variabel tempat "${it.place}" tidak terdaftar`);
+                const ch = [].concat(it.chars ?? []);
+                if (!ch.length || ch.length > 3 || ch.some(x => !findName(cast, x))) P(`clip ${c.n}: invalid characters`, `konflik referensi variabel karakter`);
+                if (!Array.isArray(it.move) || !it.move.length) P(`clip ${c.n}: "move" must be a non-empty array`, `atribut gerak kosong pada scene ${c.n}`);
+            });
+            return probs.slice(0, 6);
+        }
+
+        async function generateScenes() {
+            const P = STATE.project;
+            if (!P.book) return;
+            const clips = P.clips, book = P.book;
+            const cast = (book.cast || []).map(c => c.name), places = (book.places || []).map(p => p.name);
+            if (!P.bid) P.bid = 'b' + Date.now().toString(36);
+            const fullLyrics = clips.filter(c => c.isLyr).map(c => c.t).join(' | ');
+
+            initTerminal(P.map.length ? `Meresume eksekusi peta scene dari cluster ${P.map.length + 1}...` : "Menginisialisasi pipeline pemetaan scene...");
+            $('scene-progress').classList.remove('hidden');
+
+            const sys = `You are a Music Video Scene Mapper for a children's song. Map visual scenes matching each lyric beat.
+RULES:
+1. ALL OUTPUT IN ENGLISH.
+2. Use ONLY the place names and character names provided. Copy them exactly. Maximum 3 characters per clip.
+3. 'act': short dynamic action phrase for an image prompt (e.g. "dancing joyfully"). Real-world activities only.
+4. 'exp': one emotion word (e.g. "cheerful", "curious").
+5. 'props': objects/background details inside the place. NO characters here.
+6. 'move': array of short sentences describing what the characters physically DO in this clip, in order. Each sentence includes the character name(s) and uses plain physical verbs only (walks, claps, waves, spins, points, jumps, pets, hugs). NO lighting, glow, sparkle, magic, mood, style or atmosphere words. Number of sentences by clip length: 4s=1, 6s=1-2, 8s=2, 10s=3. The last action must lead into 'end'.
+7. 'end': one short phrase: where the characters are and what they are doing at the END of the clip. The next clip must continue from it.
+8. 'dialogue': only for clips 1-2 of the whole video, at most one very short spoken line (max 6 words); otherwise "".
+9. Camera angle and camera movement are decided by the app. Do NOT output them.
+10. PLACES: follow the song structure. Stay in one place for a verse or chorus, move to the next place at the next verse or chorus, and use every place at least once.
+11. Every field MUST be in English, EXCEPT fields ending in "_id": those are natural INDONESIAN translations of the matching English field (scene_id, exp_id, act_id, props_id, dialogue_id, and move_id = array with exactly the same number of sentences as "move"), used only for on-screen display. Keep character names unchanged in them.
+12. Be concise: every string under 15 words.
+13. JSON ARRAY ONLY, no markdown fences, exactly one object per clip, same order: [{"n":1,"scene":"Director notes","scene_id":"...","place":"Exact place name","chars":["Exact cast names"],"exp":"...","exp_id":"...","act":"...","act_id":"...","props":"...","props_id":"...","move":["..."],"move_id":["..."],"end":"...","dialogue":"","dialogue_id":""}]`;
+
+            let size = 10;
+            try {
+                while (P.map.length < clips.length) {
+                    const i = P.map.length;
+                    const prev = P.map.slice(-3);
+                    const ctx = prev.length
+                        ? `Previous clips already mapped (continue naturally from the last one):\n${prev.map(m => `${m.n}|place=${m.place}|chars=${m.chars.join(', ')}|end=${m.end}`).join('\n')}`
+                        : 'This is the first batch.';
+                    let items = null, err = '', chunk = null;
+                    for (let attempt = 0; attempt < 3 && !items; attempt++) {
+                        chunk = clips.slice(i, i + size);
+                        Log.info(`Memproses cluster matriks ${chunk[0].n}-${chunk[chunk.length - 1].n} (Siklus iterasi ${attempt + 1}/3)...`);
+                        const usr = `Lyrics context: ${fullLyrics}\nVideo Concept: ${JSON.stringify(enOnly(book))}\nValid place names: ${JSON.stringify(places)}\nValid character names: ${JSON.stringify(cast)}\n${ctx}\nMap EXACTLY ${chunk.length} clips, one object per clip, in order, each with its "n":\n${chunk.map(c => `${c.n}|${clipDur(c)}s|${c.t}${c.part ? ` [part ${c.part}]` : ''}`).join('\n')}${err ? `\nYOUR PREVIOUS ANSWER WAS REJECTED: ${err}\nFix it.` : ''}`;
+                        try {
+                            const j = extractJSON(await callAI(sys, usr, `Generasi Cluster ${chunk[0].n}-${chunk[chunk.length - 1].n}`));
+                            if (j.truncated) {
+                                const keep = Math.min(j.length, chunk.length);
+                                Log.warn(`Integritas data terkompromi; merecover ${keep}/${chunk.length} blok yang valid.`);
+                                chunk = chunk.slice(0, keep); j.length = keep; size = Math.max(3, keep);
+                            }
+                            Log.info(`Parsing JSON sukses (${Array.isArray(j) ? j.length : 0} nodes), memverifikasi struktur...`);
+                            const probs = validateBatch(j, chunk, places, cast);
+                            if (probs.length) { err = probs.map(p => p.en).join('; '); Log.warn(`Penolakan sistem: ${probs.map(p => p.id).join(' | ')}`); } else { items = j; Log.ok('Verifikasi checksum lulus, dataset aman.'); }
+                        } catch (e) {
+                            if (e instanceof KeyError) throw e; Log.warn(`Kesalahan pada stream output: ${e.message}`);
+                            if (e.raw) Log.warn(`Data ekor: ...${e.raw.slice(-120).replace(/\s+/g, ' ')}`);
+                            err = e.en || 'the output could not be processed';
+                            if (e.en) size = Math.max(3, Math.ceil(size / 2));
+                        }
+                    }
+                    if (!items) throw new Error(`Cluster ${chunk[0].n}-${chunk[chunk.length - 1].n} gagal dikompilasi secara permanen. Klik Lanjutkan untuk mencoba ulang.`);
+
+                    chunk.forEach((c, k) => {
+                        const it = items[k], place = findName(places, it.place);
+                        const isNew = place !== P.map[P.map.length - 1]?.place;
+                        P.map.push({
+                            id: `${P.bid}_${c.n}`, n: c.n, scene: it.scene || 'Action', place,
+                            chars: [].concat(it.chars).map(x => findName(cast, x)),
+                            exp: it.exp || 'cheerful', act: it.act || 'dancing',
+                            props: it.props || `located in ${place}`,
+                            cam: pickCam(P.map.map(m => m.cam), isNew), vcam: pickVCam(P.map.map(m => m.vcam)), move: [].concat(it.move || []).map(x => String(x)).filter(Boolean).slice(0, 3),
+                            end: it.end || '', dialogue: c.n <= 2 ? (it.dialogue || '') : '', done: false,
+                            scene_id: it.scene_id || '', exp_id: it.exp_id || '', act_id: it.act_id || '', props_id: it.props_id || '',
+                            move_id: [].concat(it.move_id || []).map(String).slice(0, 3), dialogue_id: c.n <= 2 ? (it.dialogue_id || '') : ''
+                        });
+                    });
+                    $('scene-progress-bar').style.width = Math.round((P.map.length / clips.length) * 100) + '%';
+                    $('scene-progress-text').innerText = `${P.map.length} / ${clips.length}`;
+                    Log.ok(`Cluster berhasil diamankan di memori (${P.map.length}/${clips.length} terpetakan)`);
+                    saveState();
+                }
+                Log.ok(`SELESAI: ${P.map.length} node matriks telah diprogram. Mengaktifkan interface visual...`);
+                setTimeout(() => { STATE.working = false; updateUI(); switchPhase('image'); }, 1500);
+            } catch (e) {
+                Log.err('Pipeline terhenti mendadak: ' + e.message);
+                setTimeout(() => { STATE.working = false; updateUI(); }, 4000);
+            }
+        }
+
+        // --- STRICT TEMPLATE FORMULA ---
+        function getStrictPrompt(subject, features, expression, action, objects, camera) {
+            return `${subject}, Cocomelon-style 3D animation, with smooth shading and a high-saturation color palette with a matte finish. ${features}, with an ${expression} expression, ${action}. ${objects}, with a ${camera} camera angle.`;
+        }
+
+        function getAssetPrompt(type, item) {
+            if (type === 'character') {
+                return getStrictPrompt(
+                    item.name, item.look, "neutral", "standing still in a neutral pose on a plain white background (character reference sheet)", "front and side view", "Full body"
+                );
+            } else {
+                return `${item.name}, Cocomelon-style 3D animation, with smooth shading and a high-saturation color palette with a matte finish. Clear architectural layout, with a clean and calm atmosphere, empty scenery with no characters present. ${item.look}, with a Wide establishing camera angle.`;
+            }
+        }
+
+        function getImagePrompt(m) {
+            const castLooks = m.chars.map(cName => {
+                const cast = (STATE.project.book?.cast || []).find(c => c.name === cName);
+                return cast ? cast.look : "Detailed 3D character";
+            }).join(" and ");
+
+            const subject = m.chars.length > 0 ? m.chars.join(" and ") : "Main character";
+            const exp = m.exp.toLowerCase().includes("expression") ? m.exp : m.exp;
+
+            return getStrictPrompt(subject, castLooks, exp, m.act, m.props, m.cam);
+        }
+
+        const VCAMS = ['Camera slowly pushes in', 'Slow camera pan to the right', 'Camera slowly pulls back', 'Slow camera pan to the left', 'Slow camera tilt up', 'Camera stays still', 'Slow camera tilt down'];
+        function pickVCam(prev) {
+            const last = prev[prev.length - 1];
+            for (let t = 0; t < VCAMS.length; t++) { const c = VCAMS[(prev.length + t) % VCAMS.length]; if (c !== last) return c; }
+            return VCAMS[0];
+        }
+        const BAN_RE = /\b(light|lights|lighting|lit|glow|glows|glowing|glowed|sparkle|sparkles|sparkling|shine|shines|shining|shiny|glitter|glittering|twinkle|twinkling|shimmer|shimmering|radiant|magic|magical|dramatic|dramatically|epic|cinematic|dreamy|warm|warmly|golden|atmosphere|atmospheric|mood|moody|vibrant|beautiful|sunlight|sunbeams?|rays?|aura|style|stylized)\b/gi;
+        function cleanAction(s) {
+            return String(s || '').replace(BAN_RE, '').replace(/\s{2,}/g, ' ').replace(/\s+([,.])/g, '$1').replace(/,\s*,/g, ',').replace(/[\s,.]+$/, '').trim();
+        }
+        const MAX_ACT = { 4: 1, 6: 2, 8: 2, 10: 3 };
+        function getVideoPrompt(m) {
+            const c = STATE.project.clips.find(x => x.n === m.n);
+            const dur = c ? clipDur(c) : 6;
+            const ch = m.chars && m.chars.length ? m.chars : ['The character'];
+            const names = ch.join(' and ');
+            let acts = (m.move || []).map(cleanAction).filter(Boolean);
+            if (!acts.length) acts = [`${names} ${ch.length > 1 ? 'are' : 'is'} ${cleanAction(m.act) || 'moving happily'}`];
+            acts = acts.slice(0, MAX_ACT[dur] || 2);
+            const actionText = acts.map((a, i) => (i ? 'Then, ' : '') + a + '.').join(' ');
+            const speech = m.dialogue ? ` ${ch.length === 1 ? ch[0] + ' says' : names + ' say'}: "${String(m.dialogue).replace(/"/g, "'")}"` : '';
+            return `Single continuous shot, no cuts. ${m.vcam || VCAMS[0]}. ${actionText}${speech} No music.`;
+        }
+
+        /* ==========================================
+           5. UI RENDERING
+           ========================================== */
+        const CAM_ID = { 'Wide establishing': 'Lebar (pembuka)', 'Medium': 'Sedang', 'Full body': 'Seluruh tubuh', 'Close up': 'Dekat (close up)', 'Low angle': 'Sudut rendah' };
+        const VCAM_ID = { 'Camera slowly pushes in': 'Kamera perlahan mendekat', 'Slow camera pan to the right': 'Kamera bergeser perlahan ke kanan', 'Camera slowly pulls back': 'Kamera perlahan menjauh', 'Slow camera pan to the left': 'Kamera bergeser perlahan ke kiri', 'Slow camera tilt up': 'Kamera miring perlahan ke atas', 'Camera stays still': 'Kamera diam', 'Slow camera tilt down': 'Kamera miring perlahan ke bawah' };
+        const camLabel = c => CAM_ID[c] || c;
+        const plLabel = n => (STATE.project?.book?.places || []).find(p => p.name === n)?.name_id || n;
+        const chLabel = n => (STATE.project?.book?.cast || []).find(c => c.name === n)?.name_id || n;
+        const enOnly = o => JSON.parse(JSON.stringify(o), (k, v) => /_id$/.test(k) ? undefined : v);
+        
+        function getImagePromptId(m) {
+            const cast = STATE.project.book?.cast || [];
+            const looks = m.chars.map(n => cast.find(c => c.name === n)).map(c => c ? (c.look_id || c.look) : 'Karakter 3D yang detail').join(' dan ');
+            return `${m.chars.map(chLabel).join(' dan ') || 'Karakter utama'}, animasi 3D gaya Cocomelon, dengan shading halus dan palet warna berkejenuhan tinggi dengan hasil akhir matte. ${looks}, dengan ekspresi ${m.exp_id || m.exp}, ${m.act_id || m.act}. ${m.props_id || m.props}, dengan sudut kamera ${camLabel(m.cam)}.`;
+        }
+        function getVideoPromptId(m) {
+            const c = STATE.project.clips.find(x => x.n === m.n), dur = c ? clipDur(c) : 6;
+            const names = (m.chars && m.chars.length ? m.chars.map(chLabel) : ['Karakter']).join(' dan ');
+            let acts = (m.move || []).map((en, i) => [cleanAction(en), m.move_id?.[i] || en]).filter(p => p[0]).map(p => p[1]);
+            if (!acts.length) acts = [`${names} ${m.act_id || cleanAction(m.act) || 'bergerak dengan riang'}`];
+            const text = acts.slice(0, MAX_ACT[dur] || 2).map((a, i) => (i ? 'Lalu, ' : '') + a + '.').join(' ');
+            const speech = m.dialogue ? ` ${names} berkata: "${String(m.dialogue_id || m.dialogue).replace(/"/g, "'")}"` : '';
+            return `Satu take kontinu, tanpa pemotongan. ${VCAM_ID[m.vcam || VCAMS[0]] || m.vcam}. ${text}${speech} Tanpa musik.`;
+        }
+
+        function updateUI() {
+            if (STATE.working && STATE.project) {
+                ['drop-zone-import', 'character-setup-panel', 'story-selection-panel', 'asset-manager-panel'].forEach(i => $(i).classList.add('hidden'));
+                $('loading-state-panel').classList.remove('hidden'); renderKeys(); return;
+            }
+            if (!STATE.project) {
+                $('proj-title').innerText = "Belum ada proyek";
+                $('drop-zone-import').classList.remove('hidden');
+                $('character-setup-panel').classList.add('hidden');
+                $('loading-state-panel').classList.add('hidden');
+                $('story-selection-panel').classList.add('hidden');
+                $('asset-manager-panel').classList.add('hidden');
+            } else {
+                $('proj-title').innerText = STATE.project.title;
+                $('drop-zone-import').classList.add('hidden');
+                $('loading-state-panel').classList.add('hidden'); 
+                
+                if(!STATE.project.ideas) {
+                    $('character-setup-panel').classList.remove('hidden');
+                    $('story-selection-panel').classList.add('hidden');
+                    $('asset-manager-panel').classList.add('hidden');
+                    if(STATE.project.mainChar_src || STATE.project.mainChar) $('input-main-char').value = STATE.project.mainChar_src || STATE.project.mainChar;
+                } else if (!STATE.project.book) {
+                    $('character-setup-panel').classList.add('hidden');
+                    $('story-selection-panel').classList.remove('hidden');
+                    $('asset-manager-panel').classList.add('hidden');
+                    renderIdeas();
+                } else {
+                    $('character-setup-panel').classList.add('hidden');
+                    $('story-selection-panel').classList.add('hidden');
+                    $('asset-manager-panel').classList.remove('hidden');
+                    renderAssetManager();
+                }
+            }
+            renderKeys();
+            if (STATE.project && STATE.project.map.length > 0) { renderImageBoard(); renderVideoBoard(); }
+        }
+
+        function renderIdeas() {
+            $('story-ideas-container').innerHTML = STATE.project.ideas.map((idea, i) => `
+                <div class="glass-panel border-white/5 rounded-2xl p-7 flex flex-col hover:border-white/20 transition-all cursor-default shadow-lg">
+                    <h3 class="text-white font-bold text-lg mb-3 tracking-wide">${esc(idea.title_id || idea.title)}</h3>
+                    <p class="text-xs text-zinc-400 mb-6 flex-1 leading-relaxed">${esc(idea.idea_id || idea.idea)}</p>
+                    <button onclick="selectIdea(${i})" class="w-full py-3.5 bg-white text-black text-sm font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:bg-zinc-200">Gunakan Konsep Ini</button>
+                </div>
+            `).join('');
+        }
+
+        function renderAssetManager() {
+            const book = STATE.project.book; let html = '';
+            const items = [
+                ...(book.cast || []).map(c => ({...c, type: 'Karakter', color: 'blue', fn: 'character'})),
+                ...(book.places || []).map(p => ({...p, type: 'Latar Tempat', color: 'emerald', fn: 'place'}))
+            ];
+
+            items.forEach(i => {
+                const prompt = getAssetPrompt(i.fn, i);
+                html += `
+                <div class="bg-black/30 p-5 rounded-2xl border border-white/5 group hover:border-white/10 transition-colors shadow-inner">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <span class="text-[10px] font-bold text-${i.color}-400 uppercase tracking-widest bg-${i.color}-500/10 px-2 py-1 rounded-md border border-${i.color}-500/20">${i.type}</span>
+                            <div class="font-bold text-white mt-2.5 text-base">${esc(i.name_id || i.name)}</div>
+                        </div>
+                        <button data-p="${esc(prompt)}" onclick="copyFromAttr(this, 'Prompt disalin!')" class="glass-button p-2.5 rounded-xl text-zinc-400 hover:text-white" title="Salin Prompt (Inggris)"><i class="ph ph-copy text-xl"></i></button>
+                    </div>
+                    <div class="text-xs text-zinc-500 leading-relaxed">${esc(i.look_id || i.look)}</div>
+                </div>`;
+            });
+            $('asset-list-container').innerHTML = html;
+            
+            if(STATE.project.map.length >= STATE.project.clips.length) {
+                $('btn-generate-scenes').innerHTML = '<i class="ph-fill ph-check-circle text-lg"></i> Proses Selesai (Buka Papan Gambar)';
+                $('btn-generate-scenes').className = 'bg-white/5 text-white px-8 py-4 font-bold rounded-xl flex items-center justify-center gap-2 border border-white/10 shadow-sm text-sm transition-all hover:bg-white/10 w-full md:w-auto relative z-10';
+                $('btn-generate-scenes').onclick = () => switchPhase('image');
+            } else if (STATE.project.map.length > 0) {
+                $('btn-generate-scenes').innerHTML = `<i class="ph-bold ph-arrow-clockwise text-lg"></i> Lanjutkan Pemetaan (${STATE.project.map.length}/${STATE.project.clips.length})`;
+                $('btn-generate-scenes').onclick = generateScenes;
+            }
+        }
+
+        async function renderImageBoard() {
+            if (!STATE.project || STATE.project.map.length === 0) return;
+            const places = [...new Set(STATE.project.map.map(m => m.place))];
+            $('place-filters').innerHTML = `<button onclick="setFilter('all')" class="px-5 py-2 rounded-full text-[11px] uppercase tracking-wider font-bold transition-all ${STATE.filterPlace === 'all' ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'glass-button text-zinc-400 hover:text-white'}">Semua Area</button>` + 
+                places.map(p => `<button data-p="${esc(p)}" onclick="setFilter(this.dataset.p)" class="px-5 py-2 rounded-full text-[11px] uppercase tracking-wider font-bold transition-all ${STATE.filterPlace === p ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'glass-button text-zinc-400 hover:text-white'}">${esc(plLabel(p))}</button>`).join('');
+
+            const filteredMap = STATE.filterPlace === 'all' ? STATE.project.map : STATE.project.map.filter(m => m.place === STATE.filterPlace);
+            const cont = $('image-board-container'); cont.innerHTML = '';
+
+            for (const m of filteredMap) {
+                const clip = STATE.project.clips.find(c => c.n === m.n);
+                const imgPrompt = getImagePrompt(m);
+                const imgSrc = await getImageDB(m.id);
+                
+                const card = document.createElement('div');
+                card.className = "glass-panel rounded-3xl overflow-hidden flex flex-col group hover:border-white/10 transition-colors shadow-xl";
+                card.innerHTML = `
+                    <div class="px-5 py-4 border-b border-white/5 flex justify-between bg-white/[0.02]">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-[11px] font-bold text-white shadow-inner border border-white/5">${m.n}</span>
+                            <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest truncate max-w-[150px]">LOKASI: ${esc(plLabel(m.place))}</span>
+                        </div>
+                    </div>
+                    <div class="relative w-full aspect-video bg-black/80 drop-zone flex items-center justify-center group/drop overflow-hidden border-b border-white/5" 
+                         ondragover="event.preventDefault(); this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" 
+                         ondrop="handleImageDrop(event, '${m.id}')" onclick="document.getElementById('file-${m.id}').click()">
+                        ${imgSrc ? `<img src="${imgSrc}" class="w-full h-full object-cover" />` : `<div class="text-center text-zinc-700 p-4 transition-transform group-hover/drop:scale-110"><i class="ph-fill ph-image text-5xl mb-3 opacity-50"></i><p class="text-[10px] font-bold uppercase tracking-widest opacity-70">Seret/Klik Area Ini</p></div>`}
+                        <div class="absolute inset-0 bg-black/70 backdrop-blur-md opacity-0 group-hover/drop:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer">
+                            <i class="ph-bold ${imgSrc ? 'ph-arrows-clockwise' : 'ph-upload-simple'} text-4xl mb-3"></i>
+                        </div>
+                        <input type="file" id="file-${m.id}" accept="image/*" class="hidden" onchange="handleImageFile(event, '${m.id}')">
+                    </div>
+                    <div class="p-6 flex-1 flex flex-col gap-4 bg-black/40">
+                        <div>
+                            <p class="text-[10px] text-zinc-500 mb-2 font-mono bg-white/5 px-2.5 py-1 rounded-md inline-block border border-white/5 truncate max-w-full tracking-wide">${clip.t}</p>
+                            <p class="text-sm font-medium text-zinc-300 line-clamp-3 leading-relaxed">${esc(m.scene_id || m.scene)}</p>
+                            <p class="text-[11px] text-zinc-500 italic mt-3 pl-3 border-l-2 border-white/10 line-clamp-3 leading-relaxed">${esc(getImagePromptId(m))}</p>
+                        </div>
+                        <div class="mt-auto pt-5 border-t border-white/5">
+                            <button data-p="${esc(imgPrompt)}" onclick="copyFromAttr(this)" class="w-full py-3.5 bg-white/5 hover:bg-white/10 border border-white/5 text-zinc-400 hover:text-white rounded-xl text-[11px] font-bold tracking-wider uppercase flex justify-center gap-2 transition-all shadow-sm">
+                                <i class="ph ph-copy text-base"></i> Salin Prompt En
+                            </button>
+                        </div>
+                    </div>
+                `;
+                cont.appendChild(card);
+            }
+        }
+
+        async function renderVideoBoard() {
+            if (!STATE.project || STATE.project.map.length === 0) return;
+            const cont = $('video-board-container'); cont.innerHTML = '';
+            
+            for (const m of STATE.project.map) {
+                const clip = STATE.project.clips.find(c => c.n === m.n);
+                const vidPrompt = getVideoPrompt(m);
+                const imgSrc = await getImageDB(m.id);
+                
+                const row = document.createElement('div');
+                row.className = `flex flex-col sm:flex-row gap-5 p-5 rounded-3xl border transition-all ${m.done ? 'bg-[#0a0a0c]/80 border-green-500/20 opacity-75' : 'glass-panel border-white/5 hover:border-white/10'}`;
+                row.innerHTML = `
+                    <div class="w-full sm:w-56 aspect-video sm:aspect-auto sm:h-36 shrink-0 rounded-2xl bg-black/80 overflow-hidden border border-white/5 relative shadow-inner">
+                        ${imgSrc ? `<img src="${imgSrc}" class="w-full h-full object-cover opacity-90" />` : `<div class="w-full h-full flex items-center justify-center text-zinc-700 text-[10px] uppercase font-bold"><i class="ph-fill ph-image-broken text-2xl opacity-50"></i></div>`}
+                        <div class="absolute top-2 left-2 bg-black/90 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg border border-white/10 shadow-sm">${m.n}</div>
+                        <div class="absolute bottom-2 right-2 bg-black/60 text-zinc-300 text-[9px] uppercase tracking-wider font-bold px-2 py-1 rounded-md backdrop-blur-md border border-white/10 flex items-center gap-1.5"><i class="ph-fill ph-video-camera text-[10px]"></i> ${camLabel(m.cam)}</div>
+                    </div>
+                    <div class="flex-1 min-w-0 flex flex-col py-1">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs text-zinc-300 font-mono truncate pr-3 bg-white/5 px-2 py-1 rounded-md border border-white/5">${clip.t}</span>
+                            <span class="text-[10px] font-mono font-bold text-zinc-400 bg-black/40 px-2.5 py-1 rounded-md border border-white/5 tracking-wider">${clipDur(clip)}s <span class="text-zinc-600 font-normal">(${(clip.e - clip.s).toFixed(1)}s)</span></span>
+                        </div>
+                        <p class="text-[11px] text-zinc-400 mb-4 italic pl-3 py-1 border-l-2 border-white/10 leading-relaxed">${esc(getVideoPromptId(m))}</p>
+                        <div class="mt-auto">
+                            <button data-p="${esc(vidPrompt)}" onclick="copyFromAttr(this)" class="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white flex items-center gap-2 transition-colors w-max shadow-sm">
+                                <i class="ph-bold ph-film-script text-sm"></i> Salin Prompt Gerakan
+                            </button>
+                        </div>
+                    </div>
+                    <div class="shrink-0 flex items-center sm:border-l border-white/5 sm:pl-6 sm:ml-2 mt-3 sm:mt-0 pt-4 sm:pt-0 border-t sm:border-t-0 justify-center">
+                        <label class="flex sm:flex-col items-center gap-3 sm:gap-2.5 cursor-pointer group">
+                            <input type="checkbox" class="hidden" ${m.done ? 'checked' : ''} onchange="toggleDone('${m.id}', this.checked)">
+                            <div class="w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all ${m.done ? 'bg-green-500 border-green-500 text-black shadow-[0_0_20px_rgba(34,197,94,0.3)]' : 'bg-black/40 border-zinc-700 text-transparent group-hover:border-zinc-500'}">
+                                <i class="ph-bold ph-check text-xl"></i>
+                            </div>
+                            <span class="text-[9px] font-bold uppercase tracking-widest ${m.done ? 'text-green-500' : 'text-zinc-500'}">Selesai</span>
+                        </label>
+                    </div>
+                `;
+                cont.appendChild(row);
+            }
+        }
+
+        function setFilter(p) { STATE.filterPlace = p; renderImageBoard(); }
+        function toggleDone(id, isChecked) {
+            const m = STATE.project.map.find(x => x.id === id);
+            if (m) { m.done = isChecked; Log.info(`Mengubah status blok memori ${m.n}: ${isChecked ? 'TERSELESAIKAN' : 'PENDING'}`); saveState(); renderVideoBoard(); }
+        }
+
+        function switchPhase(phase) {
+            STATE.phase = phase; Log.info('Mengalihkan antarmuka: ' + ({ setup: 'Modul Persiapan', image: 'Papan Visual', video: 'Papan Gerak' })[phase]);
+            ['setup', 'image', 'video'].forEach(p => {
+                $(`phase-${p}`).classList.toggle('hidden', p !== phase);
+                const btn = $(`nav-${p}`);
+                if (p === phase) {
+                    btn.classList.add('bg-white/10', 'text-white', 'shadow-inner', 'border', 'border-white/5');
+                    btn.classList.remove('text-zinc-400', 'glass-button');
+                } else {
+                    btn.className = `w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-all text-zinc-400 glass-button hover:text-white`;
+                }
+            });
+            if (phase === 'image') renderImageBoard();
+            if (phase === 'video') renderVideoBoard();
+        }
+
+        function processImageFile(file, id) {
+            if (!file || !file.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => { await saveImageDB(id, e.target.result); Log.ok(`Blob gambar untuk node ${id.split('_').pop()} di-cache di memori lokal (${Math.round(file.size / 1024)} KB)`); renderImageBoard(); };
+            reader.readAsDataURL(file);
+        }
+        function handleImageDrop(e, id) { e.preventDefault(); e.currentTarget.classList.remove('dragover'); processImageFile(e.dataTransfer.files[0], id); }
+        function handleImageFile(e, id) { processImageFile(e.target.files[0], id); }
+
+        function toggleSettings() {
+            const m = $('settings-modal'); m.classList.toggle('hidden');
+            if(!m.classList.contains('hidden')) { renderModelPicker(); $('api-key-input').focus(); refreshAllCredits(); }
+        }
+
+        $('api-key-input').addEventListener('keypress', e => { if (e.key === 'Enter') submitKeyInput(); });
+        function submitKeyInput() {
+            const val = $('api-key-input').value.trim();
+            if (val.length > 10) {
+                if (STATE.keys.length >= 5) return showToast('Limit maksimum 5 Kunci API tercapai.', 'error');
+                if (!STATE.keys.find(k => k.key === val)) {
+                    STATE.keys.push({ key: val, cr: null, status: 'unknown' }); Log.ok(`Token API baru diintegrasikan (...${val.slice(-4)})`);
+                    saveState(); $('api-key-input').value = ''; renderKeys(); refreshAllCredits();
+                } else showToast('Token tersebut sudah ada di sistem.', 'error');
+            }
+        }
+
+        function renderKeys() {
+            $('key-count-display').innerText = STATE.keys.length;
+            const c = $('api-key-list');
+            if(STATE.keys.length === 0) return c.innerHTML = '<div class="text-center p-5 border border-dashed border-white/5 rounded-2xl text-zinc-600 text-xs font-medium tracking-wide bg-black/30">Belum ada token tersimpan.</div>';
+            
+            c.innerHTML = STATE.keys.map((k, i) => {
+                let cl = k.status==='ok'?'text-green-400 border-green-500/20 bg-green-500/5':k.status==='empty'?'text-orange-400 border-orange-500/20 bg-orange-500/5':k.status==='error'?'text-red-400 border-red-500/20 bg-red-500/5':'text-zinc-400 border-zinc-500/20 bg-zinc-500/5';
+                let st = k.status==='ok'?(k.cr?`${new Intl.NumberFormat('id-ID').format(k.cr)} kr`:'Siap'):k.status==='empty'?'Habis':k.status==='error'?'Galat':'Cek...';
+                return `<div class="flex justify-between items-center bg-black/60 px-5 py-3.5 rounded-2xl border border-white/5 shadow-inner hover:border-white/10 transition-colors"><div class="flex gap-4 items-center"><div class="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-[10px] font-bold text-zinc-500 border border-white/5">${i+1}</div><div><div class="font-mono text-sm text-zinc-300">...${k.key.slice(-6)}</div><div class="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md border inline-block mt-1.5 ${cl}">${st}</div></div></div><button onclick="removeKey('${k.key}')" class="p-2.5 text-zinc-600 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all" title="Hapus Kunci"><i class="ph-fill ph-trash text-lg"></i></button></div>`;
+            }).join('');
+        }
+
+        function exportData() {
+            if (!STATE.project) return;
+            const blob = new Blob([JSON.stringify(STATE.project, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `Storyboard_ai_${STATE.project.title.replace(/\s+/g, '_')}.json`;
+            a.click(); URL.revokeObjectURL(url); Log.ok(`Paket data JSON berhasil diunduh: ${a.download}`);
+        }
+
+        window.onload = async () => {
+            try { await initDB(); Log.ok('Sistem penyimpanan lokal (IndexedDB) online.'); Log.info(STATE.project ? `Me-load profil proyek aktif: "${STATE.project.title}" (${STATE.project.map.length}/${STATE.project.clips.length} node disinkronkan)` : 'Tidak ada profil proyek. Sistem bersiaga menerima data...'); updateUI(); switchPhase(STATE.phase); if(STATE.keys.length > 0) refreshAllCredits(); } 
+            catch (e) { Log.err('Akses ke modul penyimpanan (IndexedDB) gagal: ' + e.message); showToast("Sistem gagal mengakses database lokal.", "error"); }
+        };
+    </script>
+</body>
+</html>
